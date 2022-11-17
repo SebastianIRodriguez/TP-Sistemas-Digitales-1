@@ -5,15 +5,15 @@
 #endif
 
 #ifndef _PERIPHERALS_H_
-#include "peripherals.h"		// Contiene a BOARD_InitBootPeripherals()
+#include "peripherals.h" // Contiene a BOARD_InitBootPeripherals()
 #endif
 
 #ifndef _PIN_MUX_H_
-#include "pin_mux.h"			// Contiene a BOARD_InitBootPins();
+#include "pin_mux.h" // Contiene a BOARD_InitBootPins();
 #endif
 
 #ifndef _MKL43Z4_H_
-#include "MKL43Z4.h"			// Contiene los registros y máscaras
+#include "MKL43Z4.h" // Contiene los registros y máscaras
 #endif
 
 void Give_Clock_To(const unsigned int port)
@@ -40,9 +40,9 @@ void Configurar_sistema(void)
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
 
-	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	BOARD_InitDebugConsole();
-	#endif
+#endif
 
 	// Le damos clock a los puertos
 	Give_Clock_To(SIM_SCGC5_PORTA_MASK);
@@ -73,4 +73,32 @@ void Configurar_sistema(void)
 	GPIOD->PDDR |= 1 << PIN_LED_VERDE;
 }
 
+void Sw1_init()
+{
+	// Le damos clock a los puertos
+	Give_Clock_To(SIM_SCGC5_PORTA_MASK);
 
+	// Le da la funcionalidad de GPIO
+	PORTA->PCR[SW1_PIN] = PORT_PCR_MUX(1);
+
+	// Declaramos como entradas a los pulsadores
+	PTA->PDDR &= ~(1 << SW1_PIN);
+
+	// Activamos el Pull-UP
+	PORTA->PCR[SW1_PIN] |= (1 << PORT_PCR_PE_SHIFT) | (1 << PORT_PCR_PS_SHIFT);
+}
+
+void Sw3_init()
+{
+	// Le damos clock a los puertos
+	Give_Clock_To(SIM_SCGC5_PORTC_MASK);
+
+	// Le da la funcionalidad de GPIO
+	PORTC->PCR[SW3_PIN] = PORT_PCR_MUX(1);
+
+	// Declaramos como entradas a los pulsadores
+	PTC->PDDR &= ~(1 << SW3_PIN);
+
+	// Activamos el Pull-UP
+	PORTC->PCR[SW3_PIN] |= (1 << PORT_PCR_PE_SHIFT) | (1 << PORT_PCR_PS_SHIFT);
+}

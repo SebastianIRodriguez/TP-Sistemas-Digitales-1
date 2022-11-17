@@ -21,7 +21,7 @@
 // Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MAXIMA intensidad
 #define MIN_PERIOD_LENGTH 4
 
-#define COTA_INF 26
+#define COTA_INF 25
 #define COTA_SUP 35
 #define LM35_CHANNEL PTE20_ADC_CHANNEL // 0
 
@@ -37,6 +37,9 @@ int last_light_sensor_value = 0;
 
 extern int Ct;
 extern int L;
+
+int Sw1;
+int Sw3;
 
 int Ft = 0;
 
@@ -68,9 +71,6 @@ int main(void)
 	// Hace todo el maneje para encender el módulo y configurarlo
 	TPMO_set();
 
-	// Habilita la cuenta
-	TPM0_begin();
-
 	// ****************************  Configuración del ADC0  *******************************
 	// Le da clock al puerto E para usar el pin 20 para el sensor
 	ADC0_activate_port(SIM_SCGC5_PORTE_MASK);
@@ -99,23 +99,16 @@ int main(void)
 	// Le doy la funcionalidad de salida
 	GPIOE->PDDR |= 1 << PIN_LED_ROJO;
 
-	PTE21_ON;
-
-	for (unsigned int i = 0; i < 500000; i++)
-	{
-		i = i - i + 2 * i - i;
-	}
-
-	PTE21_OFF;
-	
+	Sw1_init();
+	Sw3_init();
 
 	// *************************** Algoritmo principal *************************************
 	while (1)
 	{
-		if(Ft)
-			PTE21_ON;
-		else
-			PTE21_OFF;
+		Sw1 = Sw1_get();
+		Sw3 = Sw3_get();
+
+		petri(Sw1, Sw3, Ft);
 
 		if (Ct)
 		{
@@ -130,6 +123,9 @@ int main(void)
 
 		if (L)
 		{
+			// Habilita la cuenta
+			TPM0_begin();
+
 			medicion_temperatura = ADC0_get(LM35_CHANNEL);
 			medicion_en_grados = LM35_codificar_grados(medicion_temperatura);
 
@@ -154,7 +150,7 @@ int main(void)
 void SysTick_Handler()
 {
 	SysTick->CTRL; // limpio la bandera de interrupcion (status and control)
-	 
+
 	Ft = 1;
 }
 

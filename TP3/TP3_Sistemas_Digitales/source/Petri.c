@@ -35,9 +35,9 @@ void petri(int SW1, int SW3, int Ft)
     char TR6 = Q3 && Ft;
     char TR7 = Q4 && Ft;
 	char TR8 = Q1 && SW3;
-    char TR9 = Q2 && !SW3 && !Ft;
-    char TR10 = Q3 && SW1 && !Ft;
-    char TR11 = Q4 && !SW1 && !Ft;
+    char TR9 = Q6 && !SW3 && !Ft;
+    char TR10 = Q7 && SW1 && !Ft;
+    char TR11 = Q8 && !SW1 && !Ft;
     char TR12 = Q5 && SW1 && SW3;
     char TR13 = Q9 && !SW1 && !SW3;
 	char TR14 = Q6 && Ft;

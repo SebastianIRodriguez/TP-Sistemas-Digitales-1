@@ -32,6 +32,10 @@ bool Sw3_get(void);
 
 void Configurar_sistema(void);
 
+void Sw1_init();
+
+void Sw3_init();
+
 //#include "Led_and_switch_control.c"
 
 #endif /* LED_AND_SWITCH_CONTROL*/
