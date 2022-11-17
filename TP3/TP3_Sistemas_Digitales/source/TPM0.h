@@ -11,5 +11,7 @@
 
 
 void TPMO_set();
+void TPM0_begin();
+void TPM0_end();
 
 #endif

@@ -1,15 +1,10 @@
-/*
- * SysTick.c
- *
- *  Created on: 16 nov. 2022
- *      Author: lraff
- */
-
 #include "SysTick.h"
 
 #ifndef _MKL43Z4_H_
 #include "MKL43Z4.h"			// Contiene los registros y máscaras
 #endif
+
+int active_timer_flag = 0;
 
 void SysTick_set_time(unsigned long long milisegundos)
 {
@@ -25,14 +20,20 @@ void SysTick_set_time(unsigned long long milisegundos)
 }
 
 
+
 void SysTick_begin()
 {
-	SysTick->VAL = 0; //Limpio el contador
-	SysTick->CTRL = 1; // Habilita el contador
-	SysTick->CTRL |= 0B10; // Habilita la interrupción
+	if(!active_timer_flag) {
+		SysTick->VAL = 0; //Limpio el contador
+		SysTick->CTRL = 1; // Habilita el contador
+		SysTick->CTRL |= 0B10; // Habilita la interrupción
+
+		active_timer_flag = 1;
+	}
 }
 
 void SysTick_end()
 {
+	active_timer_flag = 0;
 	SysTick->CTRL = 0;
 }

@@ -49,7 +49,15 @@ void TPMO_set(){
 
 	// Match del canal del led verde
 	TPM0->CONTROLS[CANAL_LED_VERDE].CnV = 0;
+}
 
+void TPM0_begin()
+{
 	// Habilita el comienzo de la cuenta
 	TPM0->SC |= (1<<3);
+}
+
+void TPM0_end()
+{
+	TPM0->SC &= ~(1<<3);
 }

@@ -7,6 +7,7 @@ C_SRCS += \
 ../source/ADC0.c \
 ../source/LM35.c \
 ../source/Led_and_switch_control.c \
+../source/Petri.c \
 ../source/SysTick.c \
 ../source/TP3.c \
 ../source/TPM0.c \
@@ -17,6 +18,7 @@ OBJS += \
 ./source/ADC0.o \
 ./source/LM35.o \
 ./source/Led_and_switch_control.o \
+./source/Petri.o \
 ./source/SysTick.o \
 ./source/TP3.o \
 ./source/TPM0.o \
@@ -27,6 +29,7 @@ C_DEPS += \
 ./source/ADC0.d \
 ./source/LM35.d \
 ./source/Led_and_switch_control.d \
+./source/Petri.d \
 ./source/SysTick.d \
 ./source/TP3.d \
 ./source/TPM0.d \
