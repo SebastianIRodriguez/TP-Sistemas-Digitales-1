@@ -9,7 +9,7 @@
  * */
 
 
-void TPMO_Set(){
+void TPMO_set(){
 
 	// Habilito la referencia al clock interno, p 441
 	MCG->C1 |= 0x02;
@@ -41,13 +41,14 @@ void TPMO_Set(){
 	// Para PWM clear output en match: 0x28 | 101000
 	// Para PWM ser output en match: 0x24 | 100100
 	// Para Output compare: 0x14
+	// Para PWM clear output en match, con interrupcion habilitada: 0x64
 
 
 	// Módulo
 	TPM0->MOD=1000;
 
 	// Match del canal del led verde
-	TPM0->CONTROLS[CANAL_LED_VERDE].CnV = 500;
+	TPM0->CONTROLS[CANAL_LED_VERDE].CnV = 0;
 
 	// Habilita el comienzo de la cuenta
 	TPM0->SC |= (1<<3);

@@ -16,7 +16,7 @@ void ADC0_begin()
 
 	// **************  ADC Configuration Register 1, p 352 *************************************
 	// Clock Divide Select
-	ADC0->CFG1 = ADC_CFG1_ADIV(0B11); // input clock/8
+	ADC0->CFG1 = ADC_CFG1_ADIV(0B10); // input clock/4 (24MHz / 4) = 6MHz
 
 	// Sample Time Configuration
 	ADC0->CFG1 |= 1<<4; // Long sample time
@@ -52,4 +52,22 @@ int ADC0_get(int channel)
 
 void ADC0_activate_port(unsigned int port){
 	SIM->SCGC5 |= port;
+}
+
+float codificar_en_grados(int lectura, int resolucion, float Vref)
+{
+	float tension = (lectura * Vref)/ resolucion ;
+	float m;
+	float tension_ref_25c = 0.703125;
+
+	//Dependiendo si la temperatura medida es mayor o menor a 25°C cambia el calculo
+	if(tension > tension_ref_25c) {
+		m = 0.001758;
+	}
+	else {
+		m = 0.001668;
+	}
+
+	float lectura_en_grados = 25.0 - (tension - tension_ref_25c) / m;
+	return lectura_en_grados;
 }

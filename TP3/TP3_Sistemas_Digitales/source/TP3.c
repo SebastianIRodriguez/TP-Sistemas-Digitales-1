@@ -9,39 +9,119 @@
 #include "TPM0.h"
 #include "ADC0.h"
 #include "LM35.h"
+#include "SysTick.h"
 
+#define MAX_ADC_VALUE 4095.0 // Con esta resolución, obtenemos un mínimo de 750 uV, es decir, 75 m°C
+//#define MAX_ADC_VALUE 65536.0 // Con esta resolución, obtenemos un mínimo de 47 uV, aprox 0.05mV, es decir, 4.7 m°C
+
+//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MINIMA intensidad
+#define MAX_PERIOD_LENGTH 2000
+
+//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MAXIMA intensidad
+#define MIN_PERIOD_LENGTH 8
 #define COTA_INF 35
 #define COTA_SUP 60
+#define LM35_CHANNEL PTE20_ADC_CHANNEL //0
 
+#define PTE21_TOGGLE (PTE->PTOR |= (1 << 21))
+
+// *********************************  Variables locales ******************************************
+int medicion_temperatura;	// Guarda el valor tomado del ADCO en el canal del LM35
+float medicion_en_grados;
+int PWM_Match;
 int last_light_sensor_value = 0;
 
-void delay(unsigned int count)
-{
-	for(unsigned int i = 0; i<count; i++)
-	{
-		i= (i + i)/2 + i - i;
+// *********************************  Variables de Petri ******************************************
+bool Ct = 0;
+bool Ft = 0;
+bool L = 0;
+
+int map_light_to_time_period(int light_value);
+int map_temperature(float temperatura, float cota_inf, float cota_sup, int resolucion);
+
+int main(void) {
+
+	// ********************************  Consola ********************************************
+    BOARD_InitBootPins();
+    BOARD_InitBootClocks();
+    BOARD_InitBootPeripherals();
+	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+    /* Init FSL debug console. */
+    BOARD_InitDebugConsole();
+	#endif
+
+    PRINTF("TP3 - Enunciado 3, Raffagnini - Rodriguez\n\n");
+
+    // *******************************  SysTick ********************************************
+    SysTick_set_time(2000);
+    SysTick_begin();
+
+    // ****************************  Configuración del TPM0  *******************************
+	// Habilito interrupciones de modulo TPM0
+	NVIC_SetPriority(TPM0_IRQn,0);
+	NVIC_EnableIRQ(TPM0_IRQn);
+
+	// Hace todo el maneje para encender el módulo y configurarlo
+    TPMO_set();
+
+    // ****************************  Configuración del ADC0  *******************************
+    // Le da clock al puerto E para usar el pin 20 para el sensor
+    ADC0_activate_port(SIM_SCGC5_PORTE_MASK);
+
+    // Se debe llamar a esta función siempre que se quiera usar ADC0
+    ADC0_begin();
+
+    // Se indica la resolución del canal del LM35 para poder realizar los cálculos
+    LM35_attach_channel_resolution(MAX_ADC_VALUE);
+
+    // Se indica la tensión de referencia del ADC0 para poder realizar los cálculos
+    LM35_attach_vref(VALT);
+
+    // ****************************  Pin de prueba *****************************************
+    // Declaro como GPIO al pin 21, puerto E
+    PORTE->PCR[21] = PORT_PCR_MUX(1);
+
+    // Le doy la funcionalidad de salida
+    GPIOE->PDDR |= 1 << 21;
+
+    // *****************************  Pin LED ROJO *****************************************
+    // Declaro como GPIO al pin 21, puerto E
+
+    PORTE->PCR[PIN_LED_ROJO] = PORT_PCR_MUX(1);
+
+    // Le doy la funcionalidad de salida
+    GPIOE->PDDR |= 1 << PIN_LED_ROJO;
+
+    // *************************** Algoritmo principal *************************************
+	while(1) {
+
+		medicion_temperatura = ADC0_get(LM35_CHANNEL);
+		medicion_en_grados = LM35_codificar_grados(medicion_temperatura);
+
+		PWM_Match = map_temperature(medicion_en_grados, COTA_INF, COTA_SUP, 4095);
+
+		//PRINTF("Lectura en grados de LM35: %.2f°C  encode: %d\n", lectura_en_grados, PWM_Match);
+
+		TPM0->CONTROLS[CANAL_LED_VERDE].CnV = PWM_Match;
+
+
+		last_light_sensor_value = ADC0_get(LIGHT_SENSOR_CHANNEL);
+
 	}
+
+	return 0;
 }
 
-float Codificar_en_grados(int lectura, int resolucion, float Vref)
-{
-	float tension = (lectura * Vref)/ resolucion ;
-	float m;
-	float tension_ref_25c = 0.703125;
-
-	//Dependiendo si la temperatura medida es mayor o menor a 25°C cambia el calculo
-	if(tension > tension_ref_25c) {
-		m = 0.001758;
-	}
-	else {
-		m = 0.001668;
-	}
-
-	float lectura_en_grados = 25.0 - (tension - tension_ref_25c) / m;
-	return lectura_en_grados;
+void SysTick_Handler() {
+	SysTick->CTRL; // limpio la bandera de interrupcion (status and control)
+	PTE21_TOGGLE;
 }
 
-int Encode_temperature(float temperatura, float cota_inf, float cota_sup, int resolucion)
+int map_light_to_time_period(int light_value) {
+	return light_value / MAX_ADC_VALUE * (MAX_PERIOD_LENGTH - MIN_PERIOD_LENGTH) + MIN_PERIOD_LENGTH;
+}
+
+int map_temperature(float temperatura, float cota_inf, float cota_sup, int resolucion)
 {
 	/*
 	 * Mapea la temperatura indicada en un rango a fondo de escala
@@ -59,69 +139,7 @@ int Encode_temperature(float temperatura, float cota_inf, float cota_sup, int re
 	return 0;
 }
 
-#define MAX_ADC_VALUE 4095.0
 
-//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MINIMA intensidad
-#define MAX_PERIOD_LENGTH 80 
-
-//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MAXIMA intensidad
-#define MIN_PERIOD_LENGTH 8
-
-/*
-	Determina cuanto debe durar el ciclo de trabajo del LED Rojo en base a la cantidad de luz medida
-*/
-int map_light_to_time_period(int light_value) {
-	return light_value / MAX_ADC_VALUE * (MAX_PERIOD_LENGTH - MIN_PERIOD_LENGTH) + MIN_PERIOD_LENGTH;
-}
-
-int main(void) {
-    /* Init board hardware. */
-    BOARD_InitBootPins();
-    BOARD_InitBootClocks();
-    BOARD_InitBootPeripherals();
-	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
-    /* Init FSL debug console. */
-    BOARD_InitDebugConsole();
-	#endif
-
-    PRINTF("TP3 - Enunciado 3, Raffagnini - Rodriguez\n\n");
-
-	//Habilito interrupciones de modulo TPM0
-	NVIC_SetPriority(TPM0_IRQn,0);
-	NVIC_EnableIRQ(TPM0_IRQn);
-
-    TPMO_Set();
-
-    // Le da clocl al puerto E para usar el pin 20 para el sensor
-    ADC0_activate_port(SIM_SCGC5_PORTE_MASK);
-
-    // Se debe llamar a esta función siempre que se quiera usar ADC0
-    ADC0_begin();
-
-    // Se indica la resolución del canal del LM35 para poder realizar los cálculos
-    LM35_attach_channel_resolution(4095);
-
-    // Se indica la tensión de referencia del ADC0 para poder realizar los cálculos
-    LM35_attach_vref(VALT);
-
-	while(1) {
-
-		int lectura = ADC0_get(PTE20_ADC_CHANNEL);
-		float lectura_en_grados = LM35_codificar_grados(lectura);
-
-		int PWM_Match = Encode_temperature(lectura_en_grados, COTA_INF, COTA_SUP, 4095);
-
-		//PRINTF("Lectura en grados de LM35: %.2f°C  encode: %d\n", lectura_en_grados, PWM_Match);
-
-		TPM0->CONTROLS[CANAL_LED_VERDE].CnV = PWM_Match;
-
-		last_light_sensor_value = ADC0_get(LIGHT_SENSOR_CHANNEL);
-
-		//PRINTF("Lectura de sensor de luz: %d", last_light_sensor_value);
-	}
-
-	return 0;
-}
 
 /*
 	Va llevando un conteo de la cantidad de veces que se finalizo la cuenta desde el ultimo reseteo.
@@ -132,7 +150,7 @@ void update_led_red_state() {
 	static int cycle_counter = 0;
 	int cycle_length = map_light_to_time_period(last_light_sensor_value);
 
-	PRINTF("Cycle Length: %d\n", cycle_length);
+	//PRINTF("Cycle Length: %d\n", cycle_length);
 
 	if(cycle_counter < cycle_length / 2) {
 		LED_ROJO_ON;
@@ -152,7 +170,3 @@ void TPM0_IRQHandler() {
 	TPM0->CONTROLS[CANAL_LED_VERDE].CnSC |= 0x80;
 }
 
-//int lectura_escalada = lectura/4.1;
-//delay(100000);
-//int lectura2 = ADC0_get(INTERNAL_TEMP_SENSOR_CHANNEL);
-//float lectura_en_grados2 = Codificar_en_grados(lectura2, 4095, VALT);

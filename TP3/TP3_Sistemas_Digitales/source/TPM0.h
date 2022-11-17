@@ -10,6 +10,6 @@
 #endif
 
 
-void TPMO_Set();
+void TPMO_set();
 
 #endif
