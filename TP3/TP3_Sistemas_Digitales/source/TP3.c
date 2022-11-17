@@ -13,6 +13,8 @@
 #define COTA_INF 35
 #define COTA_SUP 60
 
+int last_light_sensor_value = 0;
+
 void delay(unsigned int count)
 {
 	for(unsigned int i = 0; i<count; i++)
@@ -57,9 +59,22 @@ int Encode_temperature(float temperatura, float cota_inf, float cota_sup, int re
 	return 0;
 }
 
+#define MAX_ADC_VALUE 4095.0
+
+//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MINIMA intensidad
+#define MAX_PERIOD_LENGTH 80 
+
+//Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MAXIMA intensidad
+#define MIN_PERIOD_LENGTH 8
+
+/*
+	Determina cuanto debe durar el ciclo de trabajo del LED Rojo en base a la cantidad de luz medida
+*/
+int map_light_to_time_period(int light_value) {
+	return light_value / MAX_ADC_VALUE * (MAX_PERIOD_LENGTH - MIN_PERIOD_LENGTH) + MIN_PERIOD_LENGTH;
+}
+
 int main(void) {
-	//ejercicio19();
-	//ejercicio25();
     /* Init board hardware. */
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
@@ -70,6 +85,10 @@ int main(void) {
 	#endif
 
     PRINTF("TP3 - Enunciado 3, Raffagnini - Rodriguez\n\n");
+
+	//Habilito interrupciones de modulo TPM0
+	NVIC_SetPriority(TPM0_IRQn,0);
+	NVIC_EnableIRQ(TPM0_IRQn);
 
     TPMO_Set();
 
@@ -96,9 +115,41 @@ int main(void) {
 
 		TPM0->CONTROLS[CANAL_LED_VERDE].CnV = PWM_Match;
 
+		last_light_sensor_value = ADC0_get(LIGHT_SENSOR_CHANNEL);
+
+		//PRINTF("Lectura de sensor de luz: %d", last_light_sensor_value);
 	}
 
 	return 0;
+}
+
+/*
+	Va llevando un conteo de la cantidad de veces que se finalizo la cuenta desde el ultimo reseteo.
+	Mientras no haya alcanzado la mitad del largo del ciclo (calculado en base al nivel de luz) el led esta encendido.
+	En el otro semiciclo esta apagado.
+*/
+void update_led_red_state() {
+	static int cycle_counter = 0;
+	int cycle_length = map_light_to_time_period(last_light_sensor_value);
+
+	PRINTF("Cycle Length: %d\n", cycle_length);
+
+	if(cycle_counter < cycle_length / 2) {
+		LED_ROJO_ON;
+	}
+	else if(cycle_counter < cycle_length) {
+		LED_ROJO_OFF;
+	}
+	else {
+		cycle_counter = 0;
+	}
+	cycle_counter++;
+}
+
+void TPM0_IRQHandler() {
+	update_led_red_state();
+
+	TPM0->CONTROLS[CANAL_LED_VERDE].CnSC |= 0x80;
 }
 
 //int lectura_escalada = lectura/4.1;

@@ -35,8 +35,9 @@ void TPMO_Set(){
 	// La p 472 tiene el mapa de memoria de todo lo referido a TPMx
 
 	// Funcionamiento del canal, página 472
-	TPM0->CONTROLS[CANAL_LED_VERDE].CnSC|=0x24;
+	TPM0->CONTROLS[CANAL_LED_VERDE].CnSC|=0x64;
 
+	// Bit 0x40 habilita interrupciones
 	// Para PWM clear output en match: 0x28 | 101000
 	// Para PWM ser output en match: 0x24 | 100100
 	// Para Output compare: 0x14

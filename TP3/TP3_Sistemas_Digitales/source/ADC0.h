@@ -9,8 +9,10 @@
 #define ADC0_H_
 
 #define VALT 3.07
+
 #define PTE20_ADC_CHANNEL 0
 #define INTERNAL_TEMP_SENSOR_CHANNEL 0x1A
+#define LIGHT_SENSOR_CHANNEL 0x03
 
 
 //int LM35_PORT;
