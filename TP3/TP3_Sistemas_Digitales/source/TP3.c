@@ -5,6 +5,7 @@
 #include "clock_config.h"
 #include "MKL43Z4.h"
 #include "fsl_debug_console.h"
+#include "sensor_conversion.h"
 #include "Led_and_switch_control.h"
 #include "TPM0.h"
 #include "ADC0.h"
@@ -12,17 +13,6 @@
 #include "SysTick.h"
 #include "Petri.h"
 
-#define MAX_ADC_VALUE 4095.0 // Con esta resolución, obtenemos un mínimo de 750 uV, es decir, 75 m°C
-// #define MAX_ADC_VALUE 65536.0 // Con esta resolución, obtenemos un mínimo de 47 uV, aprox 0.05mV, es decir, 4.7 m°C
-
-// Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MINIMA intensidad
-#define MAX_PERIOD_LENGTH 4000
-
-// Cantidad de overflows que va a durar el periodo de trabajo del led cuando se ilumina con MAXIMA intensidad
-#define MIN_PERIOD_LENGTH 4
-
-#define COTA_INF 25
-#define COTA_SUP 35
 #define LM35_CHANNEL PTE20_ADC_CHANNEL // 0
 
 #define PTE21_TOGGLE (PTE->PTOR |= (1 << 21))
@@ -30,48 +20,40 @@
 #define PTE21_OFF (PTE->PCOR |= (1 << 21))
 
 // *********************************  Variables locales ******************************************
-int medicion_temperatura; // Guarda el valor tomado del ADCO en el canal del LM35
-float medicion_en_grados;
-int PWM_Match;
-int last_light_sensor_value = 0;
-
 extern int Ct;
 extern int L;
 
-int Sw1;
-int Sw3;
-
+int last_light_sensor_value = 0;
 int Ft = 0;
 
-int map_light_to_time_period(int light_value);
-int map_temperature(float temperatura, float cota_inf, float cota_sup, int resolucion);
-
-int main(void)
-{
-
-	// ********************************  Consola ********************************************
+void config_board() {
 	BOARD_InitBootPins();
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
-#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	/* Init FSL debug console. */
 	BOARD_InitDebugConsole();
-#endif
+	#endif
+}
 
-	PRINTF("TP3 - Enunciado 3, Raffagnini - Rodriguez\n\n");
+void config_led_red() {
+	// Declaro como GPIO al pin 21, puerto E
 
-	// *******************************  SysTick ********************************************
-	SysTick_set_time(2000);
+	PORTE->PCR[PIN_LED_ROJO] = PORT_PCR_MUX(1);
 
-	// ****************************  Configuración del TPM0  *******************************
-	// Habilito interrupciones de modulo TPM0
-	NVIC_SetPriority(TPM0_IRQn, 0);
-	NVIC_EnableIRQ(TPM0_IRQn);
+	// Le doy la funcionalidad de salida
+	GPIOE->PDDR |= 1 << PIN_LED_ROJO;
+}
 
-	// Hace todo el maneje para encender el módulo y configurarlo
-	TPMO_set();
+void config_test_pin() {
+	// Declaro como GPIO al pin 21, puerto E
+	PORTE->PCR[21] = PORT_PCR_MUX(1);
 
-	// ****************************  Configuración del ADC0  *******************************
+	// Le doy la funcionalidad de salida
+	GPIOE->PDDR |= 1 << 21;
+}
+
+void config_ADC() {
 	// Le da clock al puerto E para usar el pin 20 para el sensor
 	ADC0_activate_port(SIM_SCGC5_PORTE_MASK);
 
@@ -83,37 +65,19 @@ int main(void)
 
 	// Se indica la tensión de referencia del ADC0 para poder realizar los cálculos
 	LM35_attach_vref(VALT);
+}
 
-	// ****************************  Pin de prueba *****************************************
-	// Declaro como GPIO al pin 21, puerto E
-	PORTE->PCR[21] = PORT_PCR_MUX(1);
-
-	// Le doy la funcionalidad de salida
-	GPIOE->PDDR |= 1 << 21;
-
-	// *****************************  Pin LED ROJO *****************************************
-	// Declaro como GPIO al pin 21, puerto E
-
-	PORTE->PCR[PIN_LED_ROJO] = PORT_PCR_MUX(1);
-
-	// Le doy la funcionalidad de salida
-	GPIOE->PDDR |= 1 << PIN_LED_ROJO;
-
-	Sw1_init();
-	Sw3_init();
-
-	// *************************** Algoritmo principal *************************************
+void run_main_loop() {
 	while (1)
 	{
-		Sw1 = Sw1_get();
-		Sw3 = Sw3_get();
+		int Sw1 = Sw1_get();
+		int Sw3 = Sw3_get();
 
 		petri(Sw1, Sw3, Ft);
 
 		if (Ct)
 		{
-			// No importa cuantas veces se llame
-			SysTick_begin();
+			SysTick_begin(); // No importa cuantas veces se llame
 		}
 		else
 		{
@@ -123,13 +87,12 @@ int main(void)
 
 		if (L)
 		{
-			// Habilita la cuenta
-			TPM0_begin();
+			TPM0_begin(); // Habilita la cuenta
 
-			medicion_temperatura = ADC0_get(LM35_CHANNEL);
-			medicion_en_grados = LM35_codificar_grados(medicion_temperatura);
+			int medicion_temperatura = ADC0_get(LM35_CHANNEL); // Guarda el valor tomado del ADCO en el canal del LM35
+			float medicion_en_grados = LM35_codificar_grados(medicion_temperatura);
 
-			PWM_Match = map_temperature(medicion_en_grados, COTA_INF, COTA_SUP, 1000);
+			int PWM_Match = map_temperature(medicion_en_grados, COTA_INF, COTA_SUP, 1000);
 
 			// PRINTF("Lectura en grados de LM35: %.2f°C  encode: %d\n", lectura_en_grados, PWM_Match);
 
@@ -143,8 +106,6 @@ int main(void)
 			LED_ROJO_OFF;
 		}
 	}
-
-	return 0;
 }
 
 void SysTick_Handler()
@@ -152,28 +113,6 @@ void SysTick_Handler()
 	SysTick->CTRL; // limpio la bandera de interrupcion (status and control)
 
 	Ft = 1;
-}
-
-int map_light_to_time_period(int light_value)
-{
-	return light_value / MAX_ADC_VALUE * (MAX_PERIOD_LENGTH - MIN_PERIOD_LENGTH) + MIN_PERIOD_LENGTH;
-}
-
-int map_temperature(float temperatura, float cota_inf, float cota_sup, int modulo)
-{
-	/*
-	 * Mapea la temperatura indicada en un rango a fondo de escala
-	 * */
-	float k = modulo / (cota_sup - cota_inf);
-	int encode = k * (temperatura - cota_inf);
-
-	if (encode >= 0)
-	{
-		if (encode > modulo)
-			return modulo;
-		return encode;
-	}
-	return 0;
 }
 
 /*
@@ -208,4 +147,28 @@ void TPM0_IRQHandler()
 	update_led_red_state();
 
 	TPM0->CONTROLS[CANAL_LED_VERDE].CnSC |= 0x80;
+}
+
+int main(void)
+{
+	config_board();
+
+	PRINTF("TP3 - Enunciado 3, Raffagnini - Rodriguez\n\n");
+
+	SysTick_set_time(2000);
+
+	TPMO_set();
+
+	config_ADC();
+
+	config_test_pin();
+
+	config_led_red();
+
+	Sw1_init();
+	Sw3_init();
+
+	run_main_loop();
+
+	return 0;
 }

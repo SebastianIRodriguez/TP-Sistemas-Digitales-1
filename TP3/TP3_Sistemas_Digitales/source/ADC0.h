@@ -1,10 +1,3 @@
-/*
- * ADC0.h
- *
- *  Created on: 16 nov. 2022
- *      Author: lraff
- */
-
 #ifndef ADC0_H_
 #define ADC0_H_
 

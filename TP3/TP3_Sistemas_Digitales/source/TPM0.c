@@ -8,8 +8,11 @@
  *
  * */
 
-
 void TPMO_set(){
+
+	// Habilito interrupciones de modulo TPM0
+	NVIC_SetPriority(TPM0_IRQn, 0);
+	NVIC_EnableIRQ(TPM0_IRQn);
 
 	// Habilito la referencia al clock interno, p 441
 	MCG->C1 |= 0x02;

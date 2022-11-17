@@ -43,10 +43,9 @@ void ADC0_begin()
 
 int ADC0_get(int channel)
 {
-	int result;
 	ADC0->SC1[0]=channel;
 	while((ADC0->SC1[0] & 0x80) == 0){}
-	result = ADC0->R[0];
+	int result = ADC0->R[0];
 	return result;
 }
 

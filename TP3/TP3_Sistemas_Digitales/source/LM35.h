@@ -1,10 +1,3 @@
-/*
- * LM35.h
- *
- *  Created on: 16 nov. 2022
- *      Author: lraff
- */
-
 #ifndef LM35_H_
 #define LM35_H_
 

@@ -1,16 +1,8 @@
-/*
- * Petri.c
- *
- *  Created on: 17 nov. 2022
- *      Author: lraff
- */
 #include "Petri.h"
 
 // *********************************  Variables de Petri ******************************************
 int Ct = 1;
 int L = 1;
-//int Ft = 0;
-
 
 // Los lugares se simbolizan como Qx
 // Las trancisiones se simbolizan como Tx

@@ -12,7 +12,8 @@ C_SRCS += \
 ../source/TP3.c \
 ../source/TPM0.c \
 ../source/mtb.c \
-../source/semihost_hardfault.c 
+../source/semihost_hardfault.c \
+../source/sensor_conversion.c 
 
 OBJS += \
 ./source/ADC0.o \
@@ -23,7 +24,8 @@ OBJS += \
 ./source/TP3.o \
 ./source/TPM0.o \
 ./source/mtb.o \
-./source/semihost_hardfault.o 
+./source/semihost_hardfault.o \
+./source/sensor_conversion.o 
 
 C_DEPS += \
 ./source/ADC0.d \
@@ -34,7 +36,8 @@ C_DEPS += \
 ./source/TP3.d \
 ./source/TPM0.d \
 ./source/mtb.d \
-./source/semihost_hardfault.d 
+./source/semihost_hardfault.d \
+./source/sensor_conversion.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

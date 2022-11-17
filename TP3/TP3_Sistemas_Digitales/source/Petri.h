@@ -1,10 +1,3 @@
-/*
- * Petri.h
- *
- *  Created on: 17 nov. 2022
- *      Author: lraff
- */
-
 #ifndef PETRI_H_
 #define PETRI_H_
 

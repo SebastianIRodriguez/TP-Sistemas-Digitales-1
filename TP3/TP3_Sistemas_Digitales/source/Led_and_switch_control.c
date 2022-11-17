@@ -40,9 +40,9 @@ void Configurar_sistema(void)
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
 
-#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	BOARD_InitDebugConsole();
-#endif
+	#endif
 
 	// Le damos clock a los puertos
 	Give_Clock_To(SIM_SCGC5_PORTA_MASK);
